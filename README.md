@@ -24,7 +24,7 @@ The denoising pipeline for the demo is as follows:
 1. **Clone the repository**:
     ```bash
     git clone https://github.com/cmoustakas/gpuDenoiser.git
-    cd sound_denoiser
+    cd gpuDenoiser
     ```
 
 2. **Build using CMake**:
