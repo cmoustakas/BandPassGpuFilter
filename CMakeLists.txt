@@ -5,6 +5,17 @@ set(CMAKE_CXX_STANDARD 17)
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++14")
 
 find_package(CUDA 10.2 REQUIRED)
+
+# Find and link CURL for JUCE
+find_package(CURL REQUIRED)
+include_directories(${CURL_INCLUDE_DIRS})
+
+# Specify the path to the JUCE directory
+set(JUCE_DIR /home/harrismoustakas/JUCE)
+
+# Add JUCE to the project
+add_subdirectory(${JUCE_DIR} JUCE)
+
 enable_testing()
 
 # Add Google Test
@@ -26,6 +37,8 @@ list(APPEND SOUND_DENOISE_SOURCES
     include/FfmpegHandler.hpp
     src/CudaDenoise.cu
     include/CudaDenoise.hpp
+    src/AudioIO.cpp
+    include/AudioIO.hpp
     include/CudaMemory.hpp
     include/ErrChecker.hpp
 )
@@ -51,10 +64,13 @@ target_include_directories(
 
 target_link_libraries(
     ${PROJECT_NAME}
-
     ${CUDA_LIBS}
     ${CUFFT_LIBRARY}
     ${FFMPEG_LIBS}
+    juce::juce_core
+    juce::juce_audio_basics
+    juce::juce_audio_formats
+    ${CURL_LIBRARIES}
 )
 
 add_executable(
