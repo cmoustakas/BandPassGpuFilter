@@ -1,6 +1,7 @@
 #include "FfmpegHandler.hpp"
 #include "ErrChecker.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 
@@ -27,6 +28,10 @@ std::vector<uint8_t> &FfmpegHandler::getAudioBuffer() noexcept {
 }
 
 int FfmpegHandler::getSampleRate() const noexcept { return m_sample_rate; }
+
+int FfmpegHandler::getChannels() const noexcept { return m_channels; }
+
+int FfmpegHandler::getSampleFmt() const noexcept { return m_sample_fmt; }
 
 void FfmpegHandler::processAudioFilePriv(const std::string_view &file) {
 
@@ -82,6 +87,10 @@ bool FfmpegHandler::openCodec() noexcept {
     return false;
   }
 
+  // Update class attributes
+  m_channels = m_codec_cxt->channels;
+  m_sample_fmt = m_codec_cxt->sample_fmt;
+
   return true;
 }
 
@@ -133,7 +142,7 @@ bool FfmpegHandler::extractAudioData() noexcept {
   }
 
   m_audio_data.clear();
-  m_audio_data.reserve(m_segment_size);
+  //  m_audio_data.reserve(m_segment_size);
   m_subsample_buffer.resize(m_segment_size);
 
   int buffer_size = 0;
@@ -184,114 +193,137 @@ void FfmpegHandler::updateSamplingNBitRate() noexcept {
 
 int FfmpegHandler::getBitRate() const noexcept { return m_bit_rate; }
 
-bool saveAsMP3(const std::vector<uint8_t> &audioData,
-               const std::string_view &filename, int sample_rate, int bitrate,
-               int channels) {
-  AVFormatContext *fmt_ctx = nullptr;
-  AVCodecContext *codec_ctx = nullptr;
-  AVStream *stream = nullptr;
-  AVCodec *codec = nullptr;
-  AVPacket *packet = nullptr;
-  AVFrame *frame = nullptr;
-  int ret = 0;
+void saveAsMP3(uint8_t *audio_data, size_t data_size, int sample_rate,
+               int channels, int bit_rate, int sample_fmt,
+               const std::string_view &output_filename) {
 
-  // Allocate the format context for the output file
-  avformat_alloc_output_context2(&fmt_ctx, nullptr, nullptr, filename.data());
-  if (!fmt_ctx) {
-    std::cerr << "Could not allocate output format context\n";
-    return false;
+  assert(audio_data != nullptr);
+
+  AVFormatContext *format_context = nullptr;
+  AVStream *audio_stream = nullptr;
+  AVCodecContext *codec_context = nullptr;
+  AVCodec *codec = nullptr;
+
+  // Initialize FFMPEG libraries
+  avformat_alloc_output_context2(&format_context, nullptr, nullptr,
+                                 output_filename.data());
+  if (!format_context) {
+    throw std::runtime_error("Could not allocate output format context.");
   }
 
-  // Find the MP3 encoder
   codec = avcodec_find_encoder(AV_CODEC_ID_MP3);
   if (!codec) {
-    throw std::runtime_error("MP3 codec not found\n");
+    throw std::runtime_error("MP3 encoder not found.");
   }
 
-  // Add a new stream to the format context
-  stream = avformat_new_stream(fmt_ctx, codec);
-  if (!stream) {
-    throw std::runtime_error("Could not create new stream\n");
+  // Create a new audio stream
+  audio_stream = avformat_new_stream(format_context, nullptr);
+  if (!audio_stream) {
+    throw std::runtime_error("Could not create audio stream.");
   }
 
-  // Allocate the codec context and set parameters
-  codec_ctx = avcodec_alloc_context3(codec);
-  if (!codec_ctx) {
-    throw std::runtime_error("Could not allocate codec context\n");
+  codec_context = avcodec_alloc_context3(codec);
+  if (!codec_context) {
+    throw std::runtime_error("Could not allocate codec context.");
   }
 
-  codec_ctx->bit_rate = bitrate;
-  codec_ctx->sample_rate = sample_rate;
-  codec_ctx->channel_layout = av_get_default_channel_layout(channels);
-  codec_ctx->channels = channels;
-  codec_ctx->sample_fmt =
-      codec->sample_fmts[0]; // Usually AV_SAMPLE_FMT_FLTP for MP3
+  // Set codec parameters
+  codec_context->sample_rate = sample_rate;
+  codec_context->channel_layout = av_get_default_channel_layout(channels);
+  codec_context->channels = channels;
+  codec_context->bit_rate = bit_rate;
+  codec_context->sample_fmt = static_cast<AVSampleFormat>(sample_fmt);
 
-  stream->time_base = AVRational{1, sample_rate};
-
-  // Open the codec
-  if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
-    throw std::runtime_error("Could not open codec\n");
+  if (format_context->oformat->flags & AVFMT_GLOBALHEADER) {
+    codec_context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
   }
 
-  // Copy the codec parameters to the stream
-  avcodec_parameters_from_context(stream->codecpar, codec_ctx);
-
-  // Open the output file
-  if (!(fmt_ctx->flags & AVFMT_NOFILE)) {
-    CHECK_AVERROR(avio_open(&fmt_ctx->pb, filename.data(), AVIO_FLAG_WRITE));
+  // Open codec
+  if (avcodec_open2(codec_context, codec, nullptr) < 0) {
+    throw std::runtime_error("Could not open codec.");
   }
 
-  // Write the file header
-  CHECK_AVERROR(avformat_write_header(fmt_ctx, nullptr));
-
-  // Allocate packet and frame
-  packet = av_packet_alloc();
-  frame = av_frame_alloc();
-  if (!packet || !frame) {
-    throw std::runtime_error("Could not allocate packet or frame\n");
+  // Copy the codec context parameters to the stream
+  if (avcodec_parameters_from_context(audio_stream->codecpar, codec_context) <
+      0) {
+    throw std::runtime_error("Could not copy codec parameters to stream.");
   }
 
-  // Set up frame properties
-  frame->nb_samples = codec_ctx->frame_size;
-  frame->format = codec_ctx->sample_fmt;
-  frame->channel_layout = codec_ctx->channel_layout;
-  CHECK_AVERROR(av_frame_get_buffer(frame, 0));
-
-  int offset = 0;
-  while (offset < audioData.size()) {
-    // Fill the frame with data from audioData
-    int dataSize =
-        std::min((int)audioData.size() - offset, frame->nb_samples * channels);
-    memcpy(frame->data[0], audioData.data() + offset, dataSize);
-    offset += dataSize;
-
-    CHECK_AVERROR(avcodec_send_frame(codec_ctx, frame));
-
-    while (avcodec_receive_packet(codec_ctx, packet) == 0) {
-      av_interleaved_write_frame(fmt_ctx, packet);
-      av_packet_unref(packet);
+  // Open output file
+  if (!(format_context->oformat->flags & AVFMT_NOFILE)) {
+    if (avio_open(&format_context->pb, output_filename.data(),
+                  AVIO_FLAG_WRITE) < 0) {
+      throw std::runtime_error("Could not open output file.");
     }
   }
 
+  // Write the file header
+  if (avformat_write_header(format_context, nullptr) < 0) {
+    throw std::runtime_error("Error occurred when writing header to file.");
+  }
+
+  // Prepare packet and frame for writing data
+  AVPacket *packet = av_packet_alloc();
+  if (!packet) {
+    throw std::runtime_error("Could not allocate packet.");
+  }
+
+  int frame_size = codec_context->frame_size;
+  int bytes_per_sample = av_get_bytes_per_sample(codec_context->sample_fmt);
+
+  // Write audio data in frames
+  for (int64_t i = 0; i < data_size;
+       i += frame_size * bytes_per_sample * channels) {
+    AVFrame *frame = av_frame_alloc();
+    if (!frame) {
+      throw std::runtime_error("Could not allocate frame.");
+    }
+    frame->nb_samples = frame_size;
+    frame->format = codec_context->sample_fmt;
+    frame->channel_layout = codec_context->channel_layout;
+    frame->sample_rate = codec_context->sample_rate;
+
+    if (av_frame_get_buffer(frame, 0) < 0) {
+      throw std::runtime_error("Could not allocate audio data buffers.");
+    }
+
+    // Copy data into the frame
+    int64_t len = std::min(static_cast<int64_t>(frame->linesize[0]),
+                           (int64_t)data_size - i);
+    memcpy(frame->data[0], audio_data + i, len);
+
+    assert(*frame->data[0] == audio_data[i]);
+    assert(frame->nb_samples == codec_context->frame_size);
+
+    // Encode the frame
+    if (avcodec_send_frame(codec_context, frame) < 0) {
+      throw std::runtime_error("Error sending frame to codec.");
+    }
+
+    // Receive and write encoded packets
+    while (avcodec_receive_packet(codec_context, packet) == 0) {
+      av_interleaved_write_frame(format_context, packet);
+      av_packet_unref(packet); // Clean up packet after writing
+    }
+
+    av_frame_free(&frame);
+  }
+
   // Flush the encoder
-  CHECK_AVERROR(avcodec_send_frame(codec_ctx, nullptr));
-  while (avcodec_receive_packet(codec_ctx, packet) == 0) {
-    CHECK_AVERROR(av_interleaved_write_frame(fmt_ctx, packet));
+  avcodec_send_frame(codec_context, nullptr);
+  while (avcodec_receive_packet(codec_context, packet) == 0) {
+    av_interleaved_write_frame(format_context, packet);
     av_packet_unref(packet);
   }
 
-  // Write the file trailer
-  CHECK_AVERROR(av_write_trailer(fmt_ctx));
-
-  // Cleanup
-  av_frame_free(&frame);
-  av_packet_free(&packet);
-  avcodec_free_context(&codec_ctx);
-  avio_closep(&fmt_ctx->pb);
-  avformat_free_context(fmt_ctx);
-
-  return true;
+  // Write file trailer and cleanup
+  av_write_trailer(format_context);
+  avcodec_free_context(&codec_context);
+  avformat_free_context(format_context);
+  if (!(format_context->oformat->flags & AVFMT_NOFILE)) {
+    avio_closep(&format_context->pb);
+  }
+  av_packet_free(&packet); // Free the packet memory
 }
 
 } // namespace gpudenoise
