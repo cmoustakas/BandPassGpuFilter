@@ -72,7 +72,7 @@ TEST(DenoiseTest, differentSignals) {
   EXPECT_TRUE(diff_signals > 0);
 }
 
-TEST(JUCE, aduioIOCycle) {
+TEST(AudioIO, aduioIOCycle) {
 
   constexpr float kErrorTolerance = 1e-3;
 
@@ -108,4 +108,17 @@ TEST(JUCE, aduioIOCycle) {
                   kErrorTolerance);
     }
   }
+}
+
+TEST(AudioIO, aduioIOExportCSV) {
+  const std::string_view input =
+      "/home/harrismoustakas/Development/Blog/gpuDenoiser/test_data/noisy.wav";
+
+  const std::string_view csv = "/tmp/audio_signal.csv";
+
+  gpudenoise::AudioMetaData audio_packet;
+  EXPECT_NO_THROW(audio_packet = gpudenoise::loadAudioBufferFromWAV(input));
+  EXPECT_TRUE(audio_packet.isValid());
+
+  EXPECT_NO_THROW(gpudenoise::exportSignalToCSV(csv, audio_packet));
 }

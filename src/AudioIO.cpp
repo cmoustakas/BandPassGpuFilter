@@ -1,6 +1,7 @@
 #include "AudioIO.hpp"
 
 #include <cassert>
+#include <fstream>
 #include <juce_core/juce_core.h>
 
 #include <ErrChecker.hpp>
@@ -71,9 +72,43 @@ bool saveWAVfromAudioBuffer(const std::string_view &path_to_file,
   CHECK_THROW(writer == nullptr, "Failed to create writer for output WAV file");
 
   // Write the data from the audioBuffer into the new file
-  writer->writeFromAudioSampleBuffer(input_audio_packet.signal, 0,
-                                     input_audio_packet.signal.getNumSamples());
-
-  return true;
+  return writer->writeFromAudioSampleBuffer(
+      input_audio_packet.signal, 0, input_audio_packet.signal.getNumSamples());
 }
+
+void exportSignalToCSV(const std::string_view &csv,
+                       const AudioMetaData &audio_packet) {
+  std::ofstream output_file(csv.data());
+
+  CHECK_THROW(output_file.is_open() == false,
+              "Failed to open CSV file for writing");
+
+  const int num_channels = audio_packet.signal.getNumChannels();
+  const int num_samples = audio_packet.signal.getNumSamples();
+
+  // Write the CSV header
+  for (int channel = 0; channel < num_channels; ++channel) {
+    output_file << "Channel_" << channel + 1;
+    if (channel < num_channels - 1)
+      output_file << ",";
+  }
+  output_file << "\n";
+
+  // Write each sample in CSV format
+  for (int sample = 0; sample < num_samples; ++sample) {
+    for (int channel = 0; channel < num_channels; ++channel) {
+      // Access each sample value
+      float sampleValue = audio_packet.signal.getReadPointer(channel)[sample];
+      output_file << sampleValue;
+
+      if (channel < num_channels - 1) {
+        output_file << ",";
+      }
+    }
+    output_file << "\n";
+  }
+
+  output_file.close();
+}
+
 } // namespace gpudenoise

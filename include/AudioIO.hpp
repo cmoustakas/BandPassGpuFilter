@@ -31,6 +31,15 @@ AudioMetaData loadAudioBufferFromWAV(const std::string_view &path_to_file);
  * @return
  */
 bool saveWAVfromAudioBuffer(const std::string_view &path_to_file,
-                            const AudioMetaData &in_buffer);
+                            const AudioMetaData &input_audio_packet);
+
+/**
+ * @brief exportSignalToCSV
+ * @param csv
+ * @param audio_packet
+ * @return
+ */
+void exportSignalToCSV(const std::string_view &csv,
+                       const AudioMetaData &audio_packet);
 
 } // namespace gpudenoise
