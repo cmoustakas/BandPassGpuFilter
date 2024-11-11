@@ -40,6 +40,18 @@ public:
    */
   int getBitRate() const noexcept;
 
+  /**
+   * @brief getChannels
+   * @return
+   */
+  int getChannels() const noexcept;
+
+  /**
+   * @brief getSampleFmt
+   * @return
+   */
+  int getSampleFmt() const noexcept;
+
 private:
   /**
    * @brief findAudioStream
@@ -81,14 +93,16 @@ private:
   int m_segment_size = kInvalidSz;
   int m_sample_rate = kInvalidSz;
   int m_bit_rate = kInvalidSz;
+  int m_channels = kInvalidSz;
+  int m_sample_fmt = kInvalidSz;
 
   std::vector<uint8_t> m_subsample_buffer;
   std::vector<uint8_t> m_audio_data;
   std::string_view m_file = "";
 };
 
-bool saveAsMP3(const std::vector<uint8_t> &audio_signal,
-               const std::string_view &filename, int sample_rate, int bit_rate,
-               int channels = 1);
+void saveAsMP3(uint8_t *audio_data, size_t data_size, int sample_rate,
+               int channels, int bit_rate, int sample_fmt,
+               const std::string_view &output_filename);
 
 } // namespace gpudenoise
