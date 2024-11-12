@@ -13,6 +13,9 @@ The denoising pipeline for the demo is as follows:
 5. **Inverse Fourier Transformation**: The inverse Fourier transform is applied to convert the data back to the time domain.
 6. **Data Download and Saving**: The processed data is transferred back to the CPU and saved as a new denoised audio file through JUCE.
 
+![denoise_graph](https://github.com/user-attachments/assets/c2371799-d901-40b2-9285-98bd935be744)
+
+
 ## Requirements
 
 - **CUDA** (version 10.2 or higher)
