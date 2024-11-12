@@ -6,7 +6,7 @@ This project is a high-performance sound denoiser that leverages GPU computing t
 
 The denoising pipeline for the demo is as follows:
 
-1. **Audio Loading**: The raw audio data is loaded using the FFMPEG API, enabling support for various audio file formats.
+1. **Audio Loading**: The raw audio data (wav) is loaded using the JUCE API.
 2. **Data Upload to GPU**: The loaded audio data is uploaded to the GPU, where accelerated processing is performed.
 3. **Fourier Transformation**: The `cuFFT` library computes the Fourier transform of the audio signal, moving it to the frequency domain.
 4. **Low-Pass Filtering**: A low-pass filter is applied in the frequency domain, removing high-frequency noise components.
