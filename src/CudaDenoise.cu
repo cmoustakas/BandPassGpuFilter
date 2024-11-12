@@ -8,13 +8,14 @@
 #include <CudaMemory.hpp>
 #include <ErrChecker.hpp>
 
-constexpr float k16KHz = 16e3;
+constexpr int kBandHigh19KHz = 16e3;
+constexpr int kBandLow1KHz = 1e3;
 
 template <typename T> T divUp(T a, T b) { return a / b + 1; }
 
 namespace gpudenoise {
 
-__global__ void lowPassKernel(cufftComplex *fft, int cut_off, int length) {
+__global__ void bandPassKernel(cufftComplex *fft, int cut_off_h, int cut_off_l, int length) {
 
   const int tid_init = blockIdx.x * blockDim.x + threadIdx.x;
   // Utilize cache lines with stride loop
@@ -22,7 +23,7 @@ __global__ void lowPassKernel(cufftComplex *fft, int cut_off, int length) {
 
   for (int tid = tid_init; tid < length; tid += stride) {
     const int curr_freq = (tid <= (length / 2)) ? tid : length - tid;
-    if (curr_freq < cut_off) {
+    if (curr_freq < cut_off_h && curr_freq > cut_off_l) {
       continue;
     }
     // Cut the frequencies above the cutoff threshold
@@ -32,9 +33,9 @@ __global__ void lowPassKernel(cufftComplex *fft, int cut_off, int length) {
 }
 
 static inline int calculateCutoffFrequency(const int sample_rate,
-                                           const int signal_length) {
+                                           const int signal_length, const int marginal_freq) {
   const int freq_resolution = divUp(sample_rate, signal_length);
-  return k16KHz / freq_resolution;
+  return marginal_freq / freq_resolution;
 }
 
 static inline void cudaFftSingleDim(size_t signal_length, float *dev_signal,
@@ -57,8 +58,8 @@ static inline void cudaFftSingleDimInverse(size_t fft_ptr_length,
   CUFFT_CHECK(cufftDestroy(handler_fft_inv));
 }
 
-static void applyLowPassFilter(cufftComplex *fft, const size_t length,
-                               const int cutoff_freq = 50) {
+static void applyBandPassFilter(cufftComplex *fft, const size_t length,
+                               const int cutoff_freq_h, const int cutoff_freq_l) {
   const size_t max_threads = 1024;
   const size_t workload_per_thread = 2;
 
@@ -68,7 +69,7 @@ static void applyLowPassFilter(cufftComplex *fft, const size_t length,
   cudaStream_t kernel_strm;
   CUDA_CHECK(cudaStreamCreate(&kernel_strm));
 
-  lowPassKernel<<<grid_size, block_size, 0, kernel_strm>>>(fft, cutoff_freq,
+  bandPassKernel<<<grid_size, block_size, 0, kernel_strm>>>(fft, cutoff_freq_h, cutoff_freq_l,
                                                            length);
 
   CUDA_CHECK(cudaStreamSynchronize(kernel_strm));
@@ -120,10 +121,11 @@ void gpuDenoiseSignal(float *audio_signal, const int sample_rate,
     CUDA_CHECK(cudaStreamSynchronize(copy_strm));
   }
 
-  const int cutoff_freq = calculateCutoffFrequency(sample_rate, signal_length);
+  const int cutoff_freq_high = calculateCutoffFrequency(sample_rate, signal_length, kBandHigh19KHz );
+  const int cutoff_freq_low = calculateCutoffFrequency(sample_rate, signal_length, kBandLow1KHz);
 
   cudaFftSingleDim(signal_length, dev_audio_signal.get(), dev_fourier.get());
-  applyLowPassFilter(dev_fourier.get(), fft_ptr_length, cutoff_freq);
+  applyBandPassFilter(dev_fourier.get(), fft_ptr_length, cutoff_freq_high, cutoff_freq_low);
   cudaFftSingleDimInverse(signal_length, dev_audio_signal.get(),
                           dev_fourier.get());
 
