@@ -1,6 +1,6 @@
 # Sound Denoiser with GPU Acceleration
 
-This project is a high-performance sound denoiser that leverages GPU computing to process audio files efficiently. By utilizing the power of the GPU, this tool applies a low-pass filter to remove high-frequency noise, producing a cleaner audio output.
+This project is a high-performance sound denoiser that leverages GPU computing to process audio files efficiently. By utilizing the power of the GPU, this tool applies a band-pass filter to remove high-frequency noise, producing a cleaner audio output.
 
 ## Overview
 
