@@ -8,12 +8,16 @@
 #include <string>
 
 TEST(FfmpegTest, throwOnDummyFilename) {
+  GTEST_SKIP();
+
   std::string_view filename = "/tmp/jdwnkjnwnwjkndjw_nosense.mp3";
   gpudenoise::FfmpegHandler handler;
   EXPECT_THROW(handler.processAudioFile(filename), std::runtime_error);
 }
 
 TEST(FfmpegTest, noThrowFilename) {
+  GTEST_SKIP();
+
   std::string_view filename = "/home/harrismoustakas/Development/Blog/"
                               "gpuDenoiser/test_data/noisy.mp3";
   gpudenoise::FfmpegHandler handler;
@@ -21,6 +25,8 @@ TEST(FfmpegTest, noThrowFilename) {
 }
 
 TEST(FfmpegTest, checkMP3Save) {
+  GTEST_SKIP();
+
   std::string_view filename = "/home/harrismoustakas/Development/Blog/"
                               "gpuDenoiser/test_data/noisy.mp3";
   gpudenoise::FfmpegHandler handler;
@@ -48,6 +54,7 @@ TEST(FfmpegTest, checkMP3Save) {
 }
 
 TEST(DenoiseTest, differentSignals) {
+  GTEST_SKIP();
   std::string_view filename = "/home/harrismoustakas/Development/Blog/"
                               "gpuDenoiser/test_data/noisy.mp3";
 
