@@ -16,7 +16,7 @@ The denoising pipeline for the demo is as follows:
 ## Requirements
 
 - **CUDA** (version 10.2 or higher)
-- **FFMPEG** (development libraries for `avformat`, `avutil`, `avcodec`, and `swscale`)
+- **JUCE** (version 8.0.3)
 - **C++17** (or higher)
 
 ## Building the Project
