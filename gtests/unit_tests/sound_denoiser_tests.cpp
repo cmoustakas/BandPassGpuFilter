@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <AudioIO.hpp>
-#include <CudaDenoise.hpp>
+#include <CudaFiltering.hpp>
 #include <FfmpegHandler.hpp>
 
 #include <iostream>
@@ -62,7 +62,7 @@ TEST(DenoiseTest, differentSignals) {
   // Make a copy to the ivnitial audio signal
   std::vector<uint8_t> initial_signal(handler.getAudioBuffer());
 
-  gpudenoise::gpuDenoiseSignal((float *)handler.getAudioBuffer().data(),
+  gpudenoise::gpuFilterSignal((float *)handler.getAudioBuffer().data(),
                                handler.getSampleRate(), initial_signal.size());
 
   std::vector<uint8_t> &filtered_signal = handler.getAudioBuffer();
@@ -150,7 +150,7 @@ TEST(GpuDenoise, denoisePipeline) {
 
   for (int channel = 0; channel < num_of_channels; ++channel) {
     float *audio_signal = audio_packet.signal.getWritePointer(channel);
-    EXPECT_NO_THROW(gpudenoise::gpuDenoiseSignal(audio_signal, sample_rate,
+    EXPECT_NO_THROW(gpudenoise::gpuFilterSignal(audio_signal, sample_rate,
                                                  num_of_samples));
   }
 

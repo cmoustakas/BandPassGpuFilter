@@ -1,11 +1,11 @@
 #include <AudioIO.hpp>
-#include <CudaDenoise.hpp>
+#include <CudaFiltering.hpp>
 #include <ErrChecker.hpp>
 
 #include <cassert>
 #include <iostream>
 
-void printUsg() { std::cout << "./gpudenoiser /path/to/file.mp3 \n"; }
+void printUsg() { std::cout << "./gpufiltering /path/to/file.mp3 \n"; }
 
 void runDemo(const std::string_view &audio_file) {
 
@@ -22,7 +22,7 @@ void runDemo(const std::string_view &audio_file) {
 
   for (int channel = 0; channel < num_of_channels; ++channel) {
     float *audio_signal = audio_packet.signal.getWritePointer(channel);
-    gpudenoise::gpuDenoiseSignal(audio_signal, sample_rate, num_of_samples);
+    gpudenoise::gpuFilterSignal(audio_signal, sample_rate, num_of_samples);
   }
 
   gpudenoise::exportSignalToCSV("/tmp/clean_signal.csv", audio_packet);
