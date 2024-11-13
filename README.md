@@ -13,7 +13,13 @@ The filtering pipeline for the demo is as follows:
 5. **Inverse Fourier Transformation**: The inverse Fourier transform is applied to convert the data back to the time domain.
 6. **Data Download and Saving**: The processed data is transferred back to the CPU and saved as a new denoised audio file through JUCE.
 
+## Filtering
+
 ![denoise_graph](https://github.com/user-attachments/assets/c2371799-d901-40b2-9285-98bd935be744)
+
+## Performance
+
+![performance](https://github.com/user-attachments/assets/b87f7f54-4475-41b1-b962-7fb064daa1f9)
 
 
 ## Requirements
