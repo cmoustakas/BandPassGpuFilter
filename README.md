@@ -1,10 +1,10 @@
-# Sound Denoiser with GPU Acceleration
+# Band Pass Filtering with GPU Acceleration
 
-This project is a high-performance sound denoiser that leverages GPU computing to process audio files efficiently. By utilizing the power of the GPU, this tool applies a band-pass filter to remove high-frequency noise, producing a cleaner audio output.
+This project is about high-performance sound filtering that leverages GPU computing to process audio files efficiently. By utilizing the power of the GPU, this tool applies a band-pass filter to remove candidate regions of frequency noise, producing a specific spectrum of audio output.
 
 ## Overview
 
-The denoising pipeline for the demo is as follows:
+The filtering pipeline for the demo is as follows:
 
 1. **Audio Loading**: The raw audio data (wav) is loaded using the JUCE API.
 2. **Data Upload to GPU**: The loaded audio data is uploaded to the GPU, where accelerated processing is performed.
