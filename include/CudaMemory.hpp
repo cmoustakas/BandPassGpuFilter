@@ -4,7 +4,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-namespace gpudenoise {
+namespace gpufilter {
 
 template <typename T> class CudaUniquePtr {
 public:

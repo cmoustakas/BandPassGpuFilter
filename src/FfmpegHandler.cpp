@@ -14,7 +14,7 @@ extern "C" {
 
 constexpr int kB = 1024;
 
-namespace gpudenoise {
+namespace gpufilter {
 FfmpegHandler::FfmpegHandler(const std::string_view &file) {
   processAudioFilePriv(file);
 }

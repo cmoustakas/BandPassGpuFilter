@@ -1,7 +1,7 @@
 #pragma once
 #include <stddef.h>
 
-namespace gpudenoise {
+namespace gpufilter {
 
 /**
  * @brief gpuDenoiseAudio

@@ -6,7 +6,7 @@
 
 #include <ErrChecker.hpp>
 
-namespace gpudenoise {
+namespace gpufilter {
 
 AudioMetaData loadAudioBufferFromWAV(const std::string_view &path_to_file) {
 

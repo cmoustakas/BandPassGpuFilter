@@ -1,4 +1,4 @@
-﻿#include "CudaDenoise.hpp"
+﻿#include "CudaFiltering.hpp"
 
 #include <cuda_runtime.h>
 #include <cufft.h>
@@ -13,7 +13,7 @@ constexpr int kBandLow1KHz = 2e2;
 
 template <typename T> T divUp(T a, T b) { return a / b + 1; }
 
-namespace gpudenoise {
+namespace gpufilter {
 
 __global__ void bandPassKernel(cufftComplex *fft, int cut_off_h, int cut_off_l, int length) {
 
@@ -100,7 +100,7 @@ static inline void normalizeSignal(float *signal, const size_t signal_length) {
   }
 }
 
-void gpuDenoiseSignal(float *audio_signal, const int sample_rate,
+void gpuFilterSignal(float *audio_signal, const int sample_rate,
                       const size_t signal_length) {
 
   assert(signal_length > 0);
