@@ -27,7 +27,7 @@ __global__ void bandPassKernel(cufftComplex *fft, int cut_off_h, int cut_off_l, 
     if (inside_spectrum) {
       continue;
     }
-    // Cut the frequencies above the cutoff threshold
+    // Cut the frequencies outside spectrum
     fft[tid].x = 0.0f;
     fft[tid].y = 0.0f;
   }
