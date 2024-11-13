@@ -26,8 +26,8 @@ The filtering pipeline for the demo is as follows:
 
 1. **Clone the repository**:
     ```bash
-    git clone https://github.com/cmoustakas/gpuDenoiser.git
-    cd gpuDenoiser
+    git clone https://github.com/cmoustakas/BandPassGpuFilter.git
+    cd BandPassGpuFilter
     ```
 
 2. **Build using CMake**:
