@@ -42,4 +42,12 @@ bool saveWAVfromAudioBuffer(const std::string_view &path_to_file,
 void exportSignalToCSV(const std::string_view &csv,
                        const AudioMetaData &audio_packet);
 
-} // namespace gpudenoise
+/**
+ * @brief cpuBandPassFilter
+ * @param audio_packet
+ * @return
+ */
+bool cpuBandPassFilter(juce::AudioBuffer<float> &audio_signal,
+                       const int sample_rate);
+
+} // namespace gpufilter

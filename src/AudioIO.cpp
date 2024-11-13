@@ -3,6 +3,7 @@
 #include <cassert>
 #include <fstream>
 #include <juce_core/juce_core.h>
+#include <juce_dsp/juce_dsp.h>
 
 #include <ErrChecker.hpp>
 
@@ -111,4 +112,32 @@ void exportSignalToCSV(const std::string_view &csv,
   output_file.close();
 }
 
-} // namespace gpudenoise
+bool cpuBandPassFilter(juce::AudioBuffer<float> &audio_signal,
+                       const int sample_rate) {
+  constexpr int kBandHigh = 16e3;
+  constexpr int kBandLow = 2e2;
+
+  juce::dsp::IIR::Filter<float> filter;
+  filter.coefficients = juce::dsp::IIR::Coefficients<float>::makeBandPass(
+      sample_rate, (kBandHigh + kBandLow) / 2);
+
+  if (!filter.coefficients.get()) {
+    return false;
+  }
+
+  juce::dsp::ProcessSpec spec;
+
+  spec.sampleRate = sample_rate;
+  spec.maximumBlockSize = 512;
+  spec.numChannels = audio_signal.getNumChannels();
+
+  filter.prepare(spec);
+
+  juce::dsp::AudioBlock<float> block(audio_signal);
+  juce::dsp::ProcessContextReplacing<float> context(block);
+  filter.process(context);
+
+  return true;
+}
+
+} // namespace gpufilter

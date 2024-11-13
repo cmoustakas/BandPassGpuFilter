@@ -20,9 +20,11 @@ void runDemo(const std::string_view &audio_file) {
   const int num_of_channels = audio_packet.signal.getNumChannels();
   const int sample_rate = audio_packet.sample_rate;
 
+  gpufilter::CudaFilterHandler cuda_filter_handler(sample_rate);
+
   for (int channel = 0; channel < num_of_channels; ++channel) {
     float *audio_signal = audio_packet.signal.getWritePointer(channel);
-    gpufilter::gpuFilterSignal(audio_signal, sample_rate, num_of_samples);
+    cuda_filter_handler.filterSignal(audio_signal, sample_rate);
   }
 
   gpufilter::exportSignalToCSV("/tmp/clean_signal.csv", audio_packet);
