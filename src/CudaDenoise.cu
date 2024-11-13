@@ -8,7 +8,7 @@
 #include <CudaMemory.hpp>
 #include <ErrChecker.hpp>
 
-constexpr int kBandHigh19KHz = 16e3;
+constexpr int kBandHigh19KHz = 19e3;
 constexpr int kBandLow1KHz = 1e3;
 
 template <typename T> T divUp(T a, T b) { return a / b + 1; }
@@ -23,7 +23,8 @@ __global__ void bandPassKernel(cufftComplex *fft, int cut_off_h, int cut_off_l, 
 
   for (int tid = tid_init; tid < length; tid += stride) {
     const int curr_freq = (tid <= (length / 2)) ? tid : length - tid;
-    if (curr_freq < cut_off_h && curr_freq > cut_off_l) {
+    const bool inside_spectrum = curr_freq < cut_off_h && curr_freq > cut_off_l;
+    if (inside_spectrum) {
       continue;
     }
     // Cut the frequencies above the cutoff threshold
@@ -131,9 +132,7 @@ void gpuDenoiseSignal(float *audio_signal, const int sample_rate,
 
   CUDA_CHECK(cudaMemcpy(audio_signal, dev_audio_signal.get(),
                         signal_length * sizeof(float), cudaMemcpyDeviceToHost));
-  CUDA_CHECK(cudaDeviceSynchronize());
-
-  normalizeSignal(audio_signal, signal_length);
+//  normalizeSignal(audio_signal, signal_length);
 }
 
 } // namespace gpudenoise
