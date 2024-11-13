@@ -54,33 +54,6 @@ TEST(FfmpegTest, checkMP3Save) {
   }
 }
 
-TEST(DenoiseTest, differentSignals) {
-  GTEST_SKIP();
-
-  std::string_view filename =
-      "/home/harrismoustakas/Development/Blog/gpuDenoiser/test_data/noisy.wav";
-
-  gpufilter::FfmpegHandler handler(filename);
-  // Make a copy to the ivnitial audio signal
-  std::vector<uint8_t> initial_signal(handler.getAudioBuffer());
-
-  gpufilter::gpuFilterSignal((float *)handler.getAudioBuffer().data(),
-                             handler.getSampleRate(), initial_signal.size());
-
-  std::vector<uint8_t> &filtered_signal = handler.getAudioBuffer();
-
-  double diff_signals = 0.0;
-
-  EXPECT_TRUE(filtered_signal.data() != initial_signal.data());
-  EXPECT_EQ(filtered_signal.size(), initial_signal.size());
-
-  for (size_t idx = 0; idx < initial_signal.size(); ++idx) {
-    diff_signals += std::abs(filtered_signal[idx] - initial_signal[idx]);
-  }
-
-  EXPECT_TRUE(diff_signals > 0);
-}
-
 TEST(AudioIO, aduioIOCycle) {
 
   constexpr float kErrorTolerance = 1e-3;
@@ -150,10 +123,13 @@ TEST(GpuDenoise, denoisePipeline) {
   const int num_of_channels = audio_packet.signal.getNumChannels();
   const int sample_rate = audio_packet.sample_rate;
 
+  // Setup FFT handler
+  gpufilter::CudaFilterHandler cuda_filter_handler(num_of_samples);
+
   for (int channel = 0; channel < num_of_channels; ++channel) {
     float *audio_signal = audio_packet.signal.getWritePointer(channel);
     EXPECT_NO_THROW(
-        gpufilter::gpuFilterSignal(audio_signal, sample_rate, num_of_samples));
+        cuda_filter_handler.filterSignal(audio_signal, sample_rate));
   }
 
   EXPECT_NO_THROW(
@@ -172,12 +148,14 @@ TEST(GpuDenoise, performanceMeasure) {
     const int num_of_channels = audio_packet.signal.getNumChannels();
     const int sample_rate = audio_packet.sample_rate;
 
+    // Setup FFT handler
+    gpufilter::CudaFilterHandler cuda_filter_handler(num_of_samples);
+
     float duration = 0.f;
     for (int channel = 0; channel < num_of_channels; ++channel) {
       float *audio_signal = audio_packet.signal.getWritePointer(channel);
       duration += BENCHMARK(
-          gpufilter::gpuFilterSignal(audio_signal, sample_rate, num_of_samples),
-          1);
+          cuda_filter_handler.filterSignal(audio_signal, sample_rate), 100);
     }
     return duration / num_of_channels;
   };
@@ -188,7 +166,7 @@ TEST(GpuDenoise, performanceMeasure) {
         float duration = 0.f;
         for (auto &buff : audio_signals) {
           duration +=
-              BENCHMARK(gpufilter::cpuBandPassFilter(buff, sample_rate), 1);
+              BENCHMARK(gpufilter::cpuBandPassFilter(buff, sample_rate), 100);
         }
         return duration / audio_signals.size();
       };
@@ -208,6 +186,8 @@ TEST(GpuDenoise, performanceMeasure) {
 
   // Create an array of AudioBuffers to hold each channel
   std::vector<juce::AudioBuffer<float>> single_channel_buffers;
+  single_channel_buffers.reserve(num_channels);
+
   // Loop over all channels
   for (int i = 0; i < num_channels; ++i) {
     juce::AudioBuffer<float> mono_buffer(1,
@@ -222,5 +202,5 @@ TEST(GpuDenoise, performanceMeasure) {
   const auto gpu_duration = gpuBandPassDuration(audio_packet_gpu);
 
   std::cout << "Gpu duration : " << gpu_duration << "\n";
-  std::cout << "Cpu duration : " << cpu_duration << "\n";
+  std::cout << "Cpu duration : " << cpu_duration << "\n\n";
 }

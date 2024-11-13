@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(sound_denoiser)
+project(sound_filter)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++14")
