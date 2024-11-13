@@ -8,8 +8,8 @@
 #include <CudaMemory.hpp>
 #include <ErrChecker.hpp>
 
-constexpr int kBandHigh19KHz = 16e3;
-constexpr int kBandLow1KHz = 2e2;
+constexpr int kBandHigh = 16e3;
+constexpr int kBandLow = 2e2;
 
 template <typename T> T divUp(T a, T b) { return a / b + 1; }
 
@@ -122,8 +122,8 @@ void gpuFilterSignal(float *audio_signal, const int sample_rate,
     CUDA_CHECK(cudaStreamSynchronize(copy_strm));
   }
 
-  const int cutoff_freq_high = calculateMarginalFrequency(sample_rate, signal_length, kBandHigh19KHz );
-  const int cutoff_freq_low = calculateMarginalFrequency(sample_rate, signal_length, kBandLow1KHz);
+  const int cutoff_freq_high = calculateMarginalFrequency(sample_rate, signal_length, kBandHigh );
+  const int cutoff_freq_low = calculateMarginalFrequency(sample_rate, signal_length, kBandLow);
 
   cudaFftSingleDim(signal_length, dev_audio_signal.get(), dev_fourier.get());
   applyBandPassFilter(dev_fourier.get(), fft_ptr_length, cutoff_freq_high, cutoff_freq_low);
@@ -132,7 +132,7 @@ void gpuFilterSignal(float *audio_signal, const int sample_rate,
 
   CUDA_CHECK(cudaMemcpy(audio_signal, dev_audio_signal.get(),
                         signal_length * sizeof(float), cudaMemcpyDeviceToHost));
-  normalizeSignal(audio_signal, signal_length);
+//  normalizeSignal(audio_signal, signal_length);
 }
 
 } // namespace gpudenoise

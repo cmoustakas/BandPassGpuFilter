@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <iostream>
 
 #include <cuda_runtime.h>
@@ -39,3 +40,18 @@
       throw std::runtime_error("cuFFT error");                                 \
     }                                                                          \
   } while (0)
+
+// Macro to measure the time of a function call or expression
+// Macro to benchmark an expression over multiple iterations
+#define BENCHMARK(expression, iterations)                                      \
+  ({                                                                           \
+    float avg_duration = 0.0f;                                                 \
+    for (int idx = 0; idx < iterations; ++idx) {                               \
+      auto start = std::chrono::high_resolution_clock::now();                  \
+      expression;                                                              \
+      auto end = std::chrono::high_resolution_clock::now();                    \
+      std::chrono::duration<float> duration = end - start;                     \
+      avg_duration += duration.count();                                        \
+    }                                                                          \
+    avg_duration / iterations;                                                 \
+  })
