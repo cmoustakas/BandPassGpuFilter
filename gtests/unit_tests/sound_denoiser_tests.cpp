@@ -2,6 +2,7 @@
 
 #include <AudioIO.hpp>
 #include <CudaFiltering.hpp>
+#include <ErrChecker.hpp>
 #include <FfmpegHandler.hpp>
 
 #include <iostream>
@@ -160,4 +161,66 @@ TEST(GpuDenoise, denoisePipeline) {
 
   EXPECT_NO_THROW(
       gpufilter::saveWAVfromAudioBuffer("/tmp/clean_signal.wav", audio_packet));
+}
+
+TEST(GpuDenoise, performanceMeasure) {
+  const std::string_view input =
+      "/home/harrismoustakas/Development/Blog/gpuDenoiser/test_data/long.wav";
+
+  auto gpuBandPassDuration = [](gpufilter::AudioMetaData &audio_packet) {
+    const int num_of_samples = audio_packet.signal.getNumSamples();
+    const int num_of_channels = audio_packet.signal.getNumChannels();
+    const int sample_rate = audio_packet.sample_rate;
+
+    float duration = 0.f;
+    for (int channel = 0; channel < num_of_channels; ++channel) {
+      float *audio_signal = audio_packet.signal.getWritePointer(channel);
+      duration += BENCHMARK(
+          gpufilter::gpuFilterSignal(audio_signal, sample_rate, num_of_samples),
+          1);
+    }
+    return duration / num_of_channels;
+  };
+
+  auto cpuBandPassDuration =
+      [](std::vector<juce::AudioBuffer<float>> &audio_signals,
+         int sample_rate) {
+        float duration = 0.f;
+        for (auto &buff : audio_signals) {
+          duration +=
+              BENCHMARK(gpufilter::cpuBandPassFilter(buff, sample_rate), 1);
+        }
+        return duration / audio_signals.size();
+      };
+
+  gpufilter::AudioMetaData audio_packet_cpu;
+  EXPECT_NO_THROW(audio_packet_cpu = gpufilter::loadAudioBufferFromWAV(input));
+  EXPECT_TRUE(audio_packet_cpu.isValid());
+
+  gpufilter::AudioMetaData audio_packet_gpu;
+  EXPECT_NO_THROW(audio_packet_gpu = gpufilter::loadAudioBufferFromWAV(input));
+  EXPECT_TRUE(audio_packet_gpu.isValid());
+
+  const size_t total_iterations = 1e2;
+
+  int num_channels = audio_packet_cpu.signal.getNumChannels();
+  int num_samples = audio_packet_cpu.signal.getNumSamples();
+
+  // Create an array of AudioBuffers to hold each channel
+  std::vector<juce::AudioBuffer<float>> single_channel_buffers;
+  // Loop over all channels
+  for (int i = 0; i < num_channels; ++i) {
+    juce::AudioBuffer<float> mono_buffer(1,
+                                         num_samples); // Only 1 channel
+    mono_buffer.copyFrom(0, 0, audio_packet_cpu.signal, i, 0, num_samples);
+    single_channel_buffers.push_back(std::move(mono_buffer));
+  }
+
+  const auto cpu_duration =
+      cpuBandPassDuration(single_channel_buffers, audio_packet_cpu.sample_rate);
+
+  const auto gpu_duration = gpuBandPassDuration(audio_packet_gpu);
+
+  std::cout << "Gpu duration : " << gpu_duration << "\n";
+  std::cout << "Cpu duration : " << cpu_duration << "\n";
 }

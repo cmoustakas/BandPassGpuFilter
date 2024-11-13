@@ -70,6 +70,7 @@ target_link_libraries(
     juce::juce_core
     juce::juce_audio_basics
     juce::juce_audio_formats
+    juce::juce_dsp
     ${CURL_LIBRARIES}
 )
 
