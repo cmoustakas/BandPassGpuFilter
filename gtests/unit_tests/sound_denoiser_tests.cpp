@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <AudioIO.hpp>
-#include <CudaDenoise.hpp>
+#include <CudaFiltering.hpp>
 #include <FfmpegHandler.hpp>
 
 #include <iostream>
@@ -11,7 +11,7 @@ TEST(FfmpegTest, throwOnDummyFilename) {
   GTEST_SKIP();
 
   std::string_view filename = "/tmp/jdwnkjnwnwjkndjw_nosense.mp3";
-  gpudenoise::FfmpegHandler handler;
+  gpufilter::FfmpegHandler handler;
   EXPECT_THROW(handler.processAudioFile(filename), std::runtime_error);
 }
 
@@ -20,7 +20,7 @@ TEST(FfmpegTest, noThrowFilename) {
 
   std::string_view filename = "/home/harrismoustakas/Development/Blog/"
                               "gpuDenoiser/test_data/noisy.mp3";
-  gpudenoise::FfmpegHandler handler;
+  gpufilter::FfmpegHandler handler;
   EXPECT_NO_THROW(handler.processAudioFile(filename));
 }
 
@@ -29,7 +29,7 @@ TEST(FfmpegTest, checkMP3Save) {
 
   std::string_view filename = "/home/harrismoustakas/Development/Blog/"
                               "gpuDenoiser/test_data/noisy.mp3";
-  gpudenoise::FfmpegHandler handler;
+  gpufilter::FfmpegHandler handler;
   handler.processAudioFile(filename);
 
   std::vector<uint8_t> initial_signal(handler.getAudioBuffer());
@@ -39,11 +39,11 @@ TEST(FfmpegTest, checkMP3Save) {
   const auto channels = handler.getChannels();
   const auto sample_fmt = handler.getSampleFmt();
   const auto file = "/tmp/noisy_copy.mp3";
-  EXPECT_NO_THROW(gpudenoise::saveAsMP3(
+  EXPECT_NO_THROW(gpufilter::saveAsMP3(
       initial_signal.data(), (int64_t)initial_signal.size(), sample_rate,
       channels, bit_rate, sample_fmt, file));
 
-  gpudenoise::FfmpegHandler copied_handler("/tmp/noisy_copy.mp3");
+  gpufilter::FfmpegHandler copied_handler("/tmp/noisy_copy.mp3");
   std::vector<uint8_t> &expected_identical_signal =
       copied_handler.getAudioBuffer();
 
@@ -55,15 +55,16 @@ TEST(FfmpegTest, checkMP3Save) {
 
 TEST(DenoiseTest, differentSignals) {
   GTEST_SKIP();
-  std::string_view filename = "/home/harrismoustakas/Development/Blog/"
-                              "gpuDenoiser/test_data/noisy.mp3";
 
-  gpudenoise::FfmpegHandler handler(filename);
+  std::string_view filename =
+      "/home/harrismoustakas/Development/Blog/gpuDenoiser/test_data/noisy.wav";
+
+  gpufilter::FfmpegHandler handler(filename);
   // Make a copy to the ivnitial audio signal
   std::vector<uint8_t> initial_signal(handler.getAudioBuffer());
 
-  gpudenoise::gpuDenoiseSignal((float *)handler.getAudioBuffer().data(),
-                               handler.getSampleRate(), initial_signal.size());
+  gpufilter::gpuFilterSignal((float *)handler.getAudioBuffer().data(),
+                             handler.getSampleRate(), initial_signal.size());
 
   std::vector<uint8_t> &filtered_signal = handler.getAudioBuffer();
 
@@ -88,14 +89,14 @@ TEST(AudioIO, aduioIOCycle) {
 
   const std::string_view copy = "/tmp/noisy_cpy.wav";
 
-  gpudenoise::AudioMetaData proto_packet;
-  EXPECT_NO_THROW(proto_packet = gpudenoise::loadAudioBufferFromWAV(input));
+  gpufilter::AudioMetaData proto_packet;
+  EXPECT_NO_THROW(proto_packet = gpufilter::loadAudioBufferFromWAV(input));
   EXPECT_TRUE(proto_packet.isValid());
 
-  EXPECT_TRUE(gpudenoise::saveWAVfromAudioBuffer(copy, proto_packet));
+  EXPECT_TRUE(gpufilter::saveWAVfromAudioBuffer(copy, proto_packet));
 
-  gpudenoise::AudioMetaData identical_packet;
-  EXPECT_NO_THROW(identical_packet = gpudenoise::loadAudioBufferFromWAV(copy));
+  gpufilter::AudioMetaData identical_packet;
+  EXPECT_NO_THROW(identical_packet = gpufilter::loadAudioBufferFromWAV(copy));
 
   EXPECT_EQ(identical_packet.sample_rate, proto_packet.sample_rate);
   EXPECT_EQ(identical_packet.signal.getNumChannels(),
@@ -123,11 +124,11 @@ TEST(AudioIO, aduioIOExportCSV) {
 
   const std::string_view csv = "/tmp/audio_signal.csv";
 
-  gpudenoise::AudioMetaData audio_packet;
-  EXPECT_NO_THROW(audio_packet = gpudenoise::loadAudioBufferFromWAV(input));
+  gpufilter::AudioMetaData audio_packet;
+  EXPECT_NO_THROW(audio_packet = gpufilter::loadAudioBufferFromWAV(input));
   EXPECT_TRUE(audio_packet.isValid());
 
-  EXPECT_NO_THROW(gpudenoise::exportSignalToCSV(csv, audio_packet));
+  EXPECT_NO_THROW(gpufilter::exportSignalToCSV(csv, audio_packet));
 }
 
 TEST(GpuDenoise, denoisePipeline) {
@@ -136,11 +137,11 @@ TEST(GpuDenoise, denoisePipeline) {
 
   const std::string_view csv = "/tmp/audio_signal_test.csv";
 
-  gpudenoise::AudioMetaData audio_packet;
-  EXPECT_NO_THROW(audio_packet = gpudenoise::loadAudioBufferFromWAV(input));
+  gpufilter::AudioMetaData audio_packet;
+  EXPECT_NO_THROW(audio_packet = gpufilter::loadAudioBufferFromWAV(input));
   EXPECT_TRUE(audio_packet.isValid());
 
-  EXPECT_NO_THROW(gpudenoise::exportSignalToCSV(csv, audio_packet));
+  EXPECT_NO_THROW(gpufilter::exportSignalToCSV(csv, audio_packet));
 
   float *copy_signal;
 
@@ -150,13 +151,13 @@ TEST(GpuDenoise, denoisePipeline) {
 
   for (int channel = 0; channel < num_of_channels; ++channel) {
     float *audio_signal = audio_packet.signal.getWritePointer(channel);
-    EXPECT_NO_THROW(gpudenoise::gpuDenoiseSignal(audio_signal, sample_rate,
-                                                 num_of_samples));
+    EXPECT_NO_THROW(
+        gpufilter::gpuFilterSignal(audio_signal, sample_rate, num_of_samples));
   }
 
-  EXPECT_NO_THROW(gpudenoise::exportSignalToCSV("/tmp/clean_signal_test.csv",
-                                                audio_packet));
+  EXPECT_NO_THROW(
+      gpufilter::exportSignalToCSV("/tmp/clean_signal_test.csv", audio_packet));
 
-  EXPECT_NO_THROW(gpudenoise::saveWAVfromAudioBuffer("/tmp/clean_signal.wav",
-                                                     audio_packet));
+  EXPECT_NO_THROW(
+      gpufilter::saveWAVfromAudioBuffer("/tmp/clean_signal.wav", audio_packet));
 }

@@ -1,18 +1,18 @@
 #include <AudioIO.hpp>
-#include <CudaDenoise.hpp>
+#include <CudaFiltering.hpp>
 #include <ErrChecker.hpp>
 
 #include <cassert>
 #include <iostream>
 
-void printUsg() { std::cout << "./gpudenoiser /path/to/file.mp3 \n"; }
+void printUsg() { std::cout << "./gpufiltering /path/to/file.mp3 \n"; }
 
 void runDemo(const std::string_view &audio_file) {
 
   // Load as packet the .wav file
-  auto audio_packet = gpudenoise::loadAudioBufferFromWAV(audio_file);
+  auto audio_packet = gpufilter::loadAudioBufferFromWAV(audio_file);
   assert(audio_packet.isValid());
-  gpudenoise::exportSignalToCSV("/tmp/clean_signal.csv", audio_packet);
+  gpufilter::exportSignalToCSV("/tmp/clean_signal.csv", audio_packet);
 
   // Denoise in GPU the "noisy" signal for each channel, dependency injection is
   // not possible due to the fact the nvcc and JUCE are somehow incompatible
@@ -22,13 +22,13 @@ void runDemo(const std::string_view &audio_file) {
 
   for (int channel = 0; channel < num_of_channels; ++channel) {
     float *audio_signal = audio_packet.signal.getWritePointer(channel);
-    gpudenoise::gpuDenoiseSignal(audio_signal, sample_rate, num_of_samples);
+    gpufilter::gpuFilterSignal(audio_signal, sample_rate, num_of_samples);
   }
 
-  gpudenoise::exportSignalToCSV("/tmp/clean_signal.csv", audio_packet);
+  gpufilter::exportSignalToCSV("/tmp/clean_signal.csv", audio_packet);
 
   // Save as .wav file the clean signal
-  gpudenoise::saveWAVfromAudioBuffer("/tmp/clean.wav", audio_packet);
+  gpufilter::saveWAVfromAudioBuffer("/tmp/clean.wav", audio_packet);
 }
 
 int main(int argc, char *argv[]) {

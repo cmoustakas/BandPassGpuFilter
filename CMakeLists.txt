@@ -31,12 +31,12 @@ include_directories(
 )
 
 # Source files
-set(SOUND_DENOISE_SOURCES)
-list(APPEND SOUND_DENOISE_SOURCES
+set(SOUND_FILTER_SOURCES)
+list(APPEND SOUND_FILTER_SOURCES
     src/FfmpegHandler.cpp
     include/FfmpegHandler.hpp
-    src/CudaDenoise.cu
-    include/CudaDenoise.hpp
+    src/CudaFiltering.cu
+    include/CudaFiltering.hpp
     src/AudioIO.cpp
     include/AudioIO.hpp
     include/CudaMemory.hpp
@@ -52,7 +52,7 @@ list(APPEND FFMPEG_LIBS
 )
 
 # Add main library
-cuda_add_library(${PROJECT_NAME} STATIC ${SOUND_DENOISE_SOURCES} )
+cuda_add_library(${PROJECT_NAME} STATIC ${SOUND_FILTER_SOURCES} )
 
 target_include_directories(
     ${PROJECT_NAME}
@@ -74,16 +74,16 @@ target_link_libraries(
 )
 
 add_executable(
-    gpudenoiser
+    gpufiltering
     src/main.cpp
 )
 
 target_link_libraries(
-    gpudenoiser
+    gpufiltering
     ${PROJECT_NAME}
 )
 
 # Testing:
 # Google Test executable for unit tests
-add_executable(sound_denoiser_tests gtests/unit_tests/sound_denoiser_tests.cpp)
-target_link_libraries(sound_denoiser_tests PRIVATE ${PROJECT_NAME} gtest gtest_main)
+add_executable(sound_filter_tests gtests/unit_tests/sound_denoiser_tests.cpp)
+target_link_libraries(sound_filter_tests PRIVATE ${PROJECT_NAME} gtest gtest_main)

@@ -1,13 +1,13 @@
 #pragma once
 #include <stddef.h>
 
-namespace gpudenoise {
+namespace gpufilter {
 
 /**
  * @brief gpuDenoiseAudio
  * @param  packet
  */
-void gpuDenoiseSignal(float *audio_data, const int sample_rate,
+void gpuFilterSignal(float *audio_data, const int sample_rate,
                       const size_t signal_length);
 
 } // namespace gpudenoise

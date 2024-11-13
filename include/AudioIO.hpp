@@ -6,7 +6,7 @@
 
 constexpr int kInvalid = -1;
 
-namespace gpudenoise {
+namespace gpufilter {
 
 // Forward declare metadata of audio signal
 struct AudioMetaData {

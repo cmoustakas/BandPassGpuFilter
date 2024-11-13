@@ -11,7 +11,7 @@ struct AVCodecContext;
 constexpr int kInvalidSz = -1;
 constexpr int kUninitializedIdx = -1;
 
-namespace gpudenoise {
+namespace gpufilter {
 
 class FfmpegHandler {
 

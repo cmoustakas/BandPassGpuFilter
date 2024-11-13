@@ -4,7 +4,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-namespace gpudenoise {
+namespace gpufilter {
 
 template <typename T> class CudaUniquePtr {
 public:
@@ -16,7 +16,17 @@ public:
     }
   }
 
-  void make_unique(unsigned int len = 1) { allocPriv(len); }
+  void make_unique(unsigned int len = 1) {
+    if (!device_data) {
+      allocPriv(len);
+    }
+  }
+
+  void release() {
+    if (device_data) {
+      cudaFree(device_data);
+    }
+  }
 
   T *get() { return device_data; }
 
