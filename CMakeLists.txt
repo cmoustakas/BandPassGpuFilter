@@ -40,7 +40,7 @@ list(APPEND SOUND_FILTER_SOURCES
     src/AudioIO.cpp
     include/AudioIO.hpp
     include/CudaMemory.hpp
-    include/ErrChecker.hpp
+    include/MacroHelpers.hpp
 )
 
 list(APPEND FFMPEG_LIBS
