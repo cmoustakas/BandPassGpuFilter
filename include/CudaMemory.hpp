@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ErrChecker.hpp>
+#include <MacroHelpers.hpp>
 #include <cuda.h>
 #include <cuda_runtime.h>
 
@@ -40,4 +40,4 @@ private:
   T *device_data = nullptr;
 };
 
-} // namespace gpudenoise
+} // namespace gpufilter

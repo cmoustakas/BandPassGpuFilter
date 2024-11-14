@@ -1,11 +1,12 @@
 ﻿#include "CudaFiltering.hpp"
 
 #include <cuda_runtime.h>
+#include <cufft.h>
 
 #include <cassert>
 
 #include <CudaMemory.hpp>
-#include <ErrChecker.hpp>
+#include <MacroHelpers.hpp>
 
 constexpr int kBandHigh = 16e3;
 constexpr int kBandLow = 2e2;
@@ -79,20 +80,28 @@ static inline void normalizeSignal(float *signal, const size_t signal_length) {
   }
 }
 
+class CudaFilterHandler::FFThandlerPriv {
+public:
+  ~FFThandlerPriv() {
+    cufftDestroy(m_fft);
+    cufftDestroy(m_fft_inverse);
+  }
+
+  cufftHandle m_fft;
+  cufftHandle m_fft_inverse;
+};
+
 CudaFilterHandler::CudaFilterHandler(const int signal_length)
     : m_signal_length(signal_length) {
+  m_fft_handler = std::make_unique<FFThandlerPriv>();
   setUp();
 }
 
-CudaFilterHandler::~CudaFilterHandler() {
-  cufftDestroy(m_fft_handler);
-  cufftDestroy(m_fft_inverse_handler);
-}
-
 void CudaFilterHandler::setUp() {
-  CUFFT_CHECK(cufftPlan1d(&m_fft_handler, m_signal_length, CUFFT_R2C, 1));
   CUFFT_CHECK(
-      cufftPlan1d(&m_fft_inverse_handler, m_signal_length, CUFFT_C2R, 1));
+      cufftPlan1d(&m_fft_handler.get()->m_fft, m_signal_length, CUFFT_R2C, 1));
+  CUFFT_CHECK(cufftPlan1d(&m_fft_handler.get()->m_fft_inverse, m_signal_length,
+                          CUFFT_C2R, 1));
 
   // Calculate FFT on device audio data
   m_fft_ptr_length = divUp<unsigned int>(m_signal_length, 2);
@@ -123,7 +132,7 @@ void CudaFilterHandler::filterSignal(float *audio_signal,
   CUDA_CHECK(cudaStreamSynchronize(copy_strm));
 
   // Calculate FFT
-  CUFFT_CHECK(cufftExecR2C(m_fft_handler, m_dev_audio_signal.get(),
+  CUFFT_CHECK(cufftExecR2C(m_fft_handler.get()->m_fft, m_dev_audio_signal.get(),
                            m_dev_fourier.get()));
 
   // Apply band pass filter on Fourier coeffs
@@ -131,8 +140,8 @@ void CudaFilterHandler::filterSignal(float *audio_signal,
                       cutoff_freq_low);
 
   // Apply inverse Fourier to return to time domain
-  CUFFT_CHECK(cufftExecC2R(m_fft_inverse_handler, m_dev_fourier.get(),
-                           m_dev_audio_signal.get()));
+  CUFFT_CHECK(cufftExecC2R(m_fft_handler.get()->m_fft_inverse,
+                           m_dev_fourier.get(), m_dev_audio_signal.get()));
 
   CUDA_CHECK(cudaMemcpy(audio_signal, m_dev_audio_signal.get(),
                         m_signal_length * sizeof(float),

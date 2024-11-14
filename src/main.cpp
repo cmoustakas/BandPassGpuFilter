@@ -1,6 +1,6 @@
 #include <AudioIO.hpp>
 #include <CudaFiltering.hpp>
-#include <ErrChecker.hpp>
+#include <MacroHelpers.hpp>
 
 #include <cassert>
 #include <iostream>
