@@ -1,6 +1,6 @@
 #pragma once
 #include <CudaMemory.hpp>
-#include <cufft.h>
+#include <memory>
 #include <stddef.h>
 
 namespace gpufilter {
@@ -11,12 +11,15 @@ public:
   ~CudaFilterHandler();
 
   /**
-   * @brief gpuDenoiseAudio
+   * @brief filterSignal
    * @param  packet
    */
   void filterSignal(float *audio_data, const int sample_rate);
 
 private:
+  // PIMPL to hide the implementation from the world
+  class FFThandlerPriv;
+
   /**
    * @brief setUpFFT
    */
@@ -28,9 +31,7 @@ private:
   // Num of fourier coefficients
   size_t m_fft_ptr_length = 0;
 
-  // Handlers for FFT and inverse FFT
-  cufftHandle m_fft_handler;
-  cufftHandle m_fft_inverse_handler;
+  std::unique_ptr<FFThandlerPriv> m_fft_handler;
 
   // GPU pointer that points to fourier complex coefficients
   CudaUniquePtr<cufftComplex> m_dev_fourier;

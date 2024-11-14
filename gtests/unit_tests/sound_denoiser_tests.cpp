@@ -2,8 +2,8 @@
 
 #include <AudioIO.hpp>
 #include <CudaFiltering.hpp>
-#include <ErrChecker.hpp>
 #include <FfmpegHandler.hpp>
+#include <MacroHelpers.hpp>
 
 #include <iostream>
 #include <string>

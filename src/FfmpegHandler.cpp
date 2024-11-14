@@ -1,5 +1,5 @@
 #include "FfmpegHandler.hpp"
-#include "ErrChecker.hpp"
+#include <MacroHelpers.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -326,4 +326,4 @@ void saveAsMP3(uint8_t *audio_data, size_t data_size, int sample_rate,
   av_packet_free(&packet); // Free the packet memory
 }
 
-} // namespace gpudenoise
+} // namespace gpufilter
